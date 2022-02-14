@@ -3,7 +3,7 @@ name: Development Workflow
 on:
   push:
     branches:
-      - 'master'   # excludes master
+      - 'main'
 
 jobs:
   test:
@@ -33,12 +33,12 @@ jobs:
       - name: Docker login, build and push
         uses: azure/docker-login@v1
         with:
-          login-server: modelcr.azurecr.io
+          login-server: ${{ secrets.REGISTRY_URL }}
           username: ${{ secrets.REGISTRY_USERNAME }}
           password: ${{ secrets.REGISTRY_PASSWORD }}
       - run: |
-          docker build . -t ${{ secrets.REGISTRY_RUL }}/fastpidemo:${{ github.sha }}
-          docker push ${{ secrets.REGISTRY_RUL }}/fastpidemo:${{ github.sha }}
+          docker build . -t ${{ secrets.REGISTRY_URL }}/fastpidemo:${{ github.sha }}
+          docker push ${{ secrets.REGISTRY_URL }}/fastpidemo:${{ github.sha }}
 
   deploy:
     name: Deploy image to ACI instance
@@ -55,7 +55,7 @@ jobs:
         with:
           resource-group: datascience
           dns-name-label: jhevrinfastapidemo
-          image: ${{ secrets.REGISTRY_RUL }}/fastpidemo:${{ github.sha }}
+          image: ${{ secrets.REGISTRY_URL }}/fastpidemo:${{ github.sha }}
           cpu: 2
           memory: 2
           registry-username: ${{ secrets.REGISTRY_USERNAME }}
