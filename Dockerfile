@@ -5,6 +5,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy in code
+COPY src src
 COPY api.py .
 
 # Expose and run 
