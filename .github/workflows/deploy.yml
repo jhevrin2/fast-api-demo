@@ -1,0 +1,65 @@
+name: Development Workflow
+
+on:
+  push:
+    branches:
+      - 'master'   # excludes master
+
+jobs:
+  test:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    container:
+      image: python:3.8-slim-buster
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Install dependencies
+        run: |
+          pip3 install --no-cache-dir -r requirements.txt
+
+      - name: Install dependencies
+        run: |
+          pytest -s
+
+  build:
+    name: Build Image
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+      - name: Docker login, build and push
+        uses: azure/docker-login@v1
+        with:
+          login-server: modelcr.azurecr.io
+          username: ${{ secrets.REGISTRY_USERNAME }}
+          password: ${{ secrets.REGISTRY_PASSWORD }}
+      - run: |
+          docker build . -t ${{ secrets.REGISTRY_RUL }}/fastpidemo:${{ github.sha }}
+          docker push ${{ secrets.REGISTRY_RUL }}/fastpidemo:${{ github.sha }}
+
+  deploy:
+    name: Deploy image to ACI instance
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: 'Login via Azure CLI'
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: 'Deploy to Azure Container Instances'
+        uses: 'azure/aci-deploy@v1'
+        with:
+          resource-group: datascience
+          dns-name-label: jhevrinfastapidemo
+          image: ${{ secrets.REGISTRY_RUL }}/fastpidemo:${{ github.sha }}
+          cpu: 2
+          memory: 2
+          registry-username: ${{ secrets.REGISTRY_USERNAME }}
+          registry-password: ${{ secrets.REGISTRY_PASSWORD }}
+          name: fastpidemo-container
+          location: 'central us'
+
